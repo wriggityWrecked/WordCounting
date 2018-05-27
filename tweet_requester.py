@@ -27,7 +27,7 @@ def obtain_bearer_token(token_from_file):
 	return access_token
 
 
-def search_twitter():
+def search_twitter(handle, start_date, end_date):
 	#todo args: user handle, start date, end date
 	#https://twitter.com/search?l=&q=from%3ArealDonaldTrump%20since%3A2018-05-14%20until%3A2018-05-15
 
@@ -37,7 +37,7 @@ def search_twitter():
 	}
 
 	data = {
-	    'q': 'from:realDonaldTrump since:2018-05-14 until:2018-05-25',
+	    'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date,
 	    'tweet_mode': 'extended'
 	}
 
@@ -63,6 +63,7 @@ def search_twitter():
 	with open('data_' + now_string + '.json', 'w') as fp:
 		json.dump(tweet_dict, fp)
 
+	return otd
 
 if __name__ == "__main__":
-	search_twitter()
+	search_twitter('realDonaldTrump', '2018-05-23', '2018-05-26')
