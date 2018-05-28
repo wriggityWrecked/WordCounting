@@ -1,69 +1,77 @@
-import base64
-import requests
-import urllib
-import string
-import json
-import time
+"""
+Methods to authenticate and obtain tweets using Twitter's search API.
+"""
+
 from datetime import datetime
 from collections import OrderedDict
-#Request URL: https://twitter.com/i/profiles/show/realDonaldTrump/timeline/tweets?composed_count=0&include_available_features=1&include_entities=1&include_new_items_bar=true&interval=30000&latent_count=0&min_position=996487798759854082
-#https://twitter.com/i/profiles/show/realDonaldTrump/timeline/tweets?include_available_features=1&include_entities=1&max_position=981126375716409344&reset_error_state=false
+import json
+import time
+import base64
+import requests
 
 
 def obtain_bearer_token(token_from_file):
+    """Get the bearer token using the Twitter oauth API.
 
-	with open(token_from_file) as f:  
-		token = str(f.read()).strip()
+    See https://developer.twitter.com/en/docs/basics/authentication/api-reference/token.html
+    """
+    with open(token_from_file) as opened_file:
+        token = str(opened_file.read()).strip()
 
-	encoded = base64.b64encode(token)
-	key = encoded.decode('ascii')
-	headers = {
-		'Authorization': 'Basic ' + key, 
-		'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-	}
+    encoded = base64.b64encode(token)
+    key = encoded.decode('ascii')
+    headers = {
+        'Authorization': 'Basic ' + key,
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+    }
 
-	r = requests.post('https://api.twitter.com/oauth2/token', headers=headers, data={'grant_type':'client_credentials'})
-	access_token = r.json()['access_token']
-	return access_token
+    request = requests.post('https://api.twitter.com/oauth2/token',
+                            headers=headers, data={'grant_type': 'client_credentials'})
+    access_token = request.json()['access_token']
+    return access_token
 
 
 def search_twitter(handle, start_date, end_date):
-	#todo args: user handle, start date, end date
-	#https://twitter.com/search?l=&q=from%3ArealDonaldTrump%20since%3A2018-05-14%20until%3A2018-05-15
+    """
+    Using the Twitter search API, return and save tweets from the input handle
+    using the start_date and end_date as search parameters.
+    """
 
-	##https://blog.scrapinghub.com/2016/06/22/scrapy-tips-from-the-pros-june-2016/?utm_content=buffer84a4c&utm_medium=social&utm_source=twitter.com&utm_campaign=buffer
-	header = {
-	    'Authorization': 'Bearer ' + obtain_bearer_token('token.txt') #todo global? command line arg parse?
-	}
+    header = {
+        # todo global? command line arg parse?
+        'Authorization': 'Bearer ' + obtain_bearer_token('token.txt')
+    }
 
-	data = {
-	    'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date,
-	    'tweet_mode': 'extended'
-	}
+    data = {
+        'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date,
+        'tweet_mode': 'extended'
+    }
 
-	r = requests.get('https://api.twitter.com/1.1/search/tweets.json?', headers=header, params=data)
+    request = requests.get('https://api.twitter.com/1.1/search/tweets.json?',
+                           headers=header, params=data)
 
-	tweet_dict = {}
-	for i in r.json()['statuses']:
-		#discard retweets
-		if not 'RT' == i['full_text'][:2]:
+    tweet_dict = {}
+    for i in request.json()['statuses']:
+        # discard retweets
+        if not i['full_text'][:2] == 'RT':
 
-			date = i['created_at'].encode('utf-8').replace("+0000", "")
-			tweet_text = i['full_text'].encode('utf-8')
-			#storing key as unix time works well for sorting
-			date_timestamp = time.mktime(time.strptime(date, "%a %b %d %H:%M:%S %Y"))
-			tweet_dict[date_timestamp] = tweet_text
+            date = i['created_at'].encode('utf-8').replace("+0000", "")
+            tweet_text = i['full_text'].encode('utf-8')
+            # storing key as unix time works well for sorting
+            date_timestamp = time.mktime(
+                time.strptime(date, "%a %b %d %H:%M:%S %Y"))
+            tweet_dict[date_timestamp] = tweet_text
 
-	otd = OrderedDict(sorted(tweet_dict.items()))
-	print otd
+    otd = OrderedDict(sorted(tweet_dict.items()))
 
-	now = datetime.now()
-	now_string = now.strftime("%Y-%m-%dT%H:%M:%S")
+    now = datetime.now()
+    now_string = now.strftime("%Y-%m-%dT%H:%M:%S")
 
-	with open('data_' + now_string + '.json', 'w') as fp:
-		json.dump(tweet_dict, fp)
+    with open('data_' + now_string + '.json', 'w') as file_to_save:
+        json.dump(tweet_dict, file_to_save)
 
-	return otd
+    return otd
+
 
 if __name__ == "__main__":
-	search_twitter('realDonaldTrump', '2018-05-23', '2018-05-26')
+    search_twitter('realDonaldTrump', '2018-05-23', '2018-05-26')
