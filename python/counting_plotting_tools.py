@@ -299,7 +299,7 @@ if __name__ == "__main__":
     # todo command line arguments via argparse?
     handles = []
     # handles.append('SenSanders')
-    # handles.append('realDonaldTrump')
+    handles.append('realDonaldTrump')
     # handles.append('LindseyGrahamSC')
     # handles.append('NancyPelosi')
     # handles.append('SenateMajLdr')
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     # handles.append('SenWarren')
     # handles.append('BarackObama')
     # handles.append('HillaryClinton')
-    handles.append('elonmusk')
+    #handles.append('elonmusk')
     # handles.append('SenFeinstein')
 
     # EmmanuelMacron need to translate!
