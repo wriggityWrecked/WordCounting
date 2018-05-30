@@ -5,4 +5,4 @@ Positive and Negative word lists provided by https://www.cs.uic.edu/~liub/FBS/se
 
 Stop words provided by http://xpo6.com/list-of-english-stop-words/
 
-[[https://github.com/wriggityWrecked/WordCounting/blob/master/example.png|alt=example]]
+[Example](https://github.com/wriggityWrecked/WordCounting/blob/master/example.png)
