@@ -42,9 +42,14 @@ def search_twitter(handle, start_date, end_date):
         'Authorization': 'Bearer ' + obtain_bearer_token('token.txt')
     }
 
+    #https://developer.twitter.com/en/docs/tweets/search/api-reference/get-search-tweets.html
+    #https://developer.twitter.com/en/docs/tweets/timelines/guides/working-with-timelines
+
+    #' count:' + str(100)
     data = {
         'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date,
-        'tweet_mode': 'extended'
+        'tweet_mode': 'extended',
+        'count': str(100) #100 is the max per the API
     }
 
     request = requests.get('https://api.twitter.com/1.1/search/tweets.json?',
@@ -54,7 +59,6 @@ def search_twitter(handle, start_date, end_date):
     for i in request.json()['statuses']:
         # discard retweets
         if not i['full_text'][:2] == 'RT':
-
             date = i['created_at'].encode('utf-8').replace("+0000", "")
             tweet_text = i['full_text'].encode('utf-8')
             # storing key as unix time works well for sorting
@@ -65,10 +69,10 @@ def search_twitter(handle, start_date, end_date):
     otd = OrderedDict(sorted(tweet_dict.items()))
 
     now = datetime.now()
-    now_string = now.strftime("%Y-%m-%dT%H:%M:%S")
+    now_string = now.strftime("%Y-%m-%dT%H-%M-%S")
 
-    with open('data_' + now_string + '.json', 'w') as file_to_save:
-        json.dump(tweet_dict, file_to_save)
+    #with open('data_' + now_string + '.json', 'w') as file_to_save:
+    #    json.dump(tweet_dict, file_to_save)
 
     return otd
 
