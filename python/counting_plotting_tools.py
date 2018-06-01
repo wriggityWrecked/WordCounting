@@ -209,18 +209,11 @@ def generate_stats(handle, tweet_dictionary, stop_words_list,
 
         cnt = process_text(tweet, stop_words_list)
 
-        # could do this at the end since we aren't looking at averages per
-        # tweet
-        p_count, n_count = filter_positive_negative_words(cnt,
-                                                          positive_words_set,
-                                                          negative_words_set)
-
+        #sum up all words in the tweet processed
         average_words_per_tweet += sum(cnt.values())
 
-        # combine counts
+        # combine count
         counter += cnt
-        positive_counter += p_count
-        negative_counter += n_count
 
         if last_timestamp is None:
             last_timestamp = timestamp
@@ -228,6 +221,10 @@ def generate_stats(handle, tweet_dictionary, stop_words_list,
             average_time_between_tweets += timestamp - last_timestamp
             last_timestamp = timestamp
 
+
+    positive_counter, negative_counter = filter_positive_negative_words(counter,
+                                                      positive_words_set,
+                                                      negative_words_set)
 
     number_of_tweets = len(tweet_dictionary.keys())
     average_words_per_tweet = 1.0 * average_words_per_tweet / number_of_tweets
