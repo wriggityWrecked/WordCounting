@@ -98,40 +98,11 @@ def load_words_as_frozenset(file_name):
     return frozenset(tmp_list)
 
 
-def barplot_count(counter, plot_title, color):
-    """
-    Generate a barplot using the input counter, input plot_title, and input
-    bar color. Was useful for testing.
-    """
-    # neat unpacking trick
-    # https://docs.python.org/3.3/library/functions.html#zip
-    labels, values = zip(*counter.most_common(10))
-
-    plt.rcdefaults()
-    figure, axes = plt.subplots()
-
-    axes.set_title(plot_title)
-    axes.set_autoscale_on(True)
-    axes.invert_yaxis()
-
-    indexes = np.arange(len(labels))
-
-    axes.barh(indexes, values, 0.5, align='center', color=color)
-
-    plt.yticks(indexes, labels)
-    plt.xticks(np.arange(0, values[0] + 1, step=1))
-    plt.tight_layout()
-    # plt.show()
-
-    return figure
-
-
 def subplot_all_counts(counter, positive_count, negative_count, plot_title,
                        number, start_date, end_date):
     """
     Generate a subplot of the top number words, top number positive, and top
-    number negative for the given counter inputs. Return the name of the file
-    (plots) saved.
+    number negative for the given counter inputs.
 
     Return the name of the plot (filename) saved to disk.
     """
@@ -215,26 +186,26 @@ def subplot_all_counts(counter, positive_count, negative_count, plot_title,
 
     return to_save
 
-
-def generate_stats_and_plots(tweeter, tweet_dictionary, stop_words_list,
+#todo separate generate stats and plots
+def generate_stats(handle, tweet_dictionary, stop_words_list,
                              positive_words_set, negative_words_set):
     """
     Given the input tweeter (twitter handle), tweet_dictionarY {timestamp:
     tweet_text}, stop words list, positive words set, and negative words set
     generate the total word count, positive word count, and negative word count.
-    This will also generate three plots, all in one image, for all counts.
-    """
 
-    tweet_list = tweet_dictionary.values()
+    """
 
     counter = collections.Counter()
     positive_counter = collections.Counter()
     negative_counter = collections.Counter()
 
     average_words_per_tweet = 0
+    average_time_between_tweets = 0
+    last_timestamp = None
 
     # count words for each tweet
-    for tweet in tweet_list:
+    for timestamp, tweet in tweet_dictionary.items():
 
         cnt = process_text(tweet, stop_words_list)
 
@@ -251,8 +222,20 @@ def generate_stats_and_plots(tweeter, tweet_dictionary, stop_words_list,
         positive_counter += p_count
         negative_counter += n_count
 
-    tweet_list_length = len(tweet_list)
-    average_words_per_tweet = average_words_per_tweet / tweet_list_length
+        if last_timestamp is None:
+            last_timestamp = timestamp
+        else:
+            average_time_between_tweets += timestamp - last_timestamp
+            last_timestamp = timestamp
+
+
+    number_of_tweets = len(tweet_dictionary.keys())
+    average_words_per_tweet = 1.0 * average_words_per_tweet / number_of_tweets
+    average_time_between_tweets = average_time_between_tweets / number_of_tweets
+
+    print str(timedelta(seconds=average_time_between_tweets))
+
+    #todo average time between tweets
 
     counter_value_sum = sum(counter.values())
     positive_word_percentage = 1.0 * \
@@ -260,33 +243,21 @@ def generate_stats_and_plots(tweeter, tweet_dictionary, stop_words_list,
     negative_word_percentage = 1.0 * \
         sum(negative_counter.values()) / counter_value_sum * 100
 
-    # convert unix time keys to strings
-    tweet_dict_keys_list = list(tweet_dict.keys())
-    start_date = datetime.fromtimestamp(
-        tweet_dict_keys_list[0]).strftime('%Y-%m-%d %H:%M:%S UTC')
-    end_date = datetime.fromtimestamp(tweet_dict_keys_list[len(
-        tweet_dict_keys_list) - 1]).strftime('%Y-%m-%d %H:%M:%S UTC')
+    print('Number of tweets: ' + str(number_of_tweets))
+    print('Average words per tweet: ' + str(format(average_words_per_tweet, '.1f')))
+    print('% of positive words: ' + str(format(positive_word_percentage, '.1f')))
+    print('% of negative words: ' + str(format(negative_word_percentage, '.1f')))
 
-    # generate figure and save
-    figure_file_name = subplot_all_counts(counter, positive_counter,
-                                          negative_counter, handle, 10,
-                                          start_date, end_date)
 
-    # hashtags = {}
-    # for key, value in counter.items():
-    #     if '#' in key:
-    #         hashtags[key] = value
-    # #print file_names
-    # print collections.Counter(hashtags)
+    CounterStats = collections.namedtuple("CounterStats", ["count", "positive_count",
+                                          "negative_count","number_of_tweets",
+                                          "avg_words_per_tweet",
+                                          "positive_word_percentage",
+                                          "negative_word_percentage"])
 
-    # plot positive / negative word percentage against polling numbers
-
-    # now post to jekyll blog
-    #    with average words per tweet
-    #    with percentage positive words
-    #    with percentage negative words
-
-    # todo pickle / save daily counts for analysis later
+    return CounterStats(counter, positive_counter, negative_counter, number_of_tweets,
+                        average_words_per_tweet, positive_word_percentage,
+                        negative_word_percentage)
 
 
 if __name__ == "__main__":
@@ -310,20 +281,45 @@ if __name__ == "__main__":
     # handles.append('HillaryClinton')
     #handles.append('elonmusk')
     # handles.append('SenFeinstein')
-
+    #handles.append('BeerAdvocate')
     # EmmanuelMacron need to translate!
+
+    #only load once to process with multiple handles
     stop_words = load_words_as_list(STOP_WORDS_FILE)
     p_set = load_words_as_frozenset(POSITIVE_WORDS_FILE)
     n_set = load_words_as_frozenset(NEGATIVE_WORDS_FILE)
 
-    # todo configurable start date and end date
-
     for handle in handles:
+        
+        #dictionary is ordered by key (timestamp) from newest to oldest
         tweet_dict = tweet_requester.search_twitter(
-            handle, last_week, next_day)
+            handle, last_week, next_day, False)
+        
         if len(tweet_dict) == 0:
             print 'No tweets found for handle ' + handle
             continue
+        
         print handle
         print len(tweet_dict)
-        generate_stats_and_plots(handle, tweet_dict, stop_words, p_set, n_set)
+        data = generate_stats(handle, tweet_dict, stop_words, p_set, n_set)
+
+        # convert unix time keys to strings
+        tweet_dict_keys_list = list(tweet_dict.keys())
+        
+        start_date = datetime.fromtimestamp(
+            tweet_dict_keys_list[0]).strftime('%Y-%m-%d %H:%M:%S UTC')
+        end_date = datetime.fromtimestamp(tweet_dict_keys_list[len(
+            tweet_dict_keys_list) - 1]).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+        # generate figure and save
+        figure_file_name = subplot_all_counts(data.count, data.positive_count,
+                                          data.negative_count, handle, 10,
+                                          start_date, end_date)
+
+        # now post to jekyll blog
+        #    with average words per tweet
+        #    with percentage positive words
+        #    with percentage negative words
+
+        # todo pickle / save daily counts for analysis later
+
