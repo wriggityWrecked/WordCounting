@@ -2,13 +2,14 @@
 Methods to authenticate and obtain tweets using Twitter's search API.
 """
 
-from datetime import datetime
 from collections import OrderedDict
-import json
 import time
 import base64
 import requests
 import calendar
+
+import parsing_arguments
+from utils import get_filename, save_json_data
 
 
 def obtain_bearer_token(token_from_file):
@@ -35,7 +36,8 @@ def obtain_bearer_token(token_from_file):
 def search_twitter(handle, start_date, end_date, save_data):
     """
     Using the Twitter search API, return and save tweets from the input handle
-    using the start_date and end_date as search parameters.
+    using the start_date and end_date as search parameters. Retweets are not
+    requested as part of the search (excluded).
 
     If the save data flag is true then the output will be saved to a file.
 
@@ -51,10 +53,10 @@ def search_twitter(handle, start_date, end_date, save_data):
     #https://developer.twitter.com/en/docs/tweets/search/api-reference/get-search-tweets.html
     #https://developer.twitter.com/en/docs/tweets/timelines/guides/working-with-timelines
 
-    #' count:' + str(100)
     data = {
-        'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date,
+        'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date + ' exclude:retweets',
         'tweet_mode': 'extended',
+        'lang': 'en',
         'count': str(100) #100 is the max per the API
     }
 
@@ -62,32 +64,34 @@ def search_twitter(handle, start_date, end_date, save_data):
                            headers=header, params=data)
 
     tweet_dict = {}
+
     for i in request.json()['statuses']:
-        # discard retweets
-        if not i['full_text'][:2] == 'RT':
             
-            date = i['created_at'].encode('utf-8').replace("+0000", "")
-            tweet_text = i['full_text'].encode('utf-8')
+        date = i['created_at'].encode('utf-8').replace("+0000", "")
+        tweet_text = i['full_text'].encode('utf-8')
 
-            # storing key as unix time (UTC - note calendar.timegm) in seconds
-            # as it works well for sorting
-            date_timestamp = calendar.timegm(time.strptime(date, "%a %b %d %H:%M:%S %Y"))
+        # storing key as unix time (UTC - note calendar.timegm) in seconds
+        # as it works well for sorting
+        date_timestamp = calendar.timegm(time.strptime(date, "%a %b %d %H:%M:%S %Y"))
 
-            #key timestamp, value tweet text
-            tweet_dict[date_timestamp] = tweet_text
+        #key timestamp, value tweet text
+        tweet_dict[date_timestamp] = tweet_text
+
 
     otd = OrderedDict(sorted(tweet_dict.items()))
 
-    now = datetime.now()
-    file_name = 'data_' + now.strftime("%Y-%m-%dT%H-%M-%S") + '.json'
-
     if save_data:
-        with open(file_name, 'w') as file_to_save:
-            json.dump(tweet_dict, file_to_save)
+        save_json_data(tweet_dict, get_filename('handle_raw_twitter', 'json'))
 
     return otd
 
 
 if __name__ == "__main__":
-    #simple test
-    print search_twitter('realDonaldTrump', '2018-05-23', '2018-05-26')
+
+    args = parsing_arguments.get_parsing_arguments()
+
+    for twitter_account in args.twitter_accounts:
+
+        print twitter_account
+
+        #print search_twitter(twitter_account, args.start_date, args.end_date, args.save_data)

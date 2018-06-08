@@ -1,6 +1,10 @@
 wordcounting/
     __init__.py
+    counter_stats.py
     counting_plotting_tools.py
+    parsing_arguments.py
+    tweet_requester.py
+    utils.py
     word_files/
         negative_words.txt
         positive_words.txt
