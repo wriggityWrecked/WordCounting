@@ -1,3 +1,7 @@
+"""
+Module for the CounterStats named tuple.
+"""
+
 import collections
 
 CounterStats = collections.namedtuple("CounterStats", ["count", "positive_count",

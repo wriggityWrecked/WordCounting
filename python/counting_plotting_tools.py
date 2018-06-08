@@ -29,7 +29,7 @@ def process_text(text, stop_words_list):
     # didn't use translate punctuation as we want to keep hashtags and mentions
     text = re.sub('&.*?;', '', text)  # filter out html
     text = text.replace('\xe2\x80\x93', '')  # filter out unicode dash
-    # todo there has to be a better way, need to read up....
+    # todo there has to be a better way, need to read up....nltk tokenizer?
 
     # filter out punctuation
     text = re.sub(
@@ -318,7 +318,7 @@ def count_and_plot_accounts(twitter_handles, start_request_time, end_request_tim
                                               data.negative_count, handle, 10,
                                               start_date, end_date)
 
-    # todo return list of file names generate for each handle
+    # todo return list of file names generated for each handle and the CounterStats data
 
 
 if __name__ == "__main__":
