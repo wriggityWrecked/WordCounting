@@ -1,5 +1,5 @@
 """
-Module for the CounterStats named tuple.
+Module for the CounterStats namedtuple.
 """
 
 import collections

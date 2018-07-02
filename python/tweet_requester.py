@@ -9,7 +9,7 @@ import requests
 import calendar
 
 import parsing_arguments
-from utils import get_filename, save_json_data
+from utils import get_filename, save_json_data, make_directory
 
 
 def obtain_bearer_token(token_from_file):
@@ -50,14 +50,14 @@ def search_twitter(handle, start_date, end_date, save_data):
         'Authorization': 'Bearer ' + obtain_bearer_token('token.txt')
     }
 
-    #https://developer.twitter.com/en/docs/tweets/search/api-reference/get-search-tweets.html
-    #https://developer.twitter.com/en/docs/tweets/timelines/guides/working-with-timelines
+    # https://developer.twitter.com/en/docs/tweets/search/api-reference/get-search-tweets.html
+    # https://developer.twitter.com/en/docs/tweets/timelines/guides/working-with-timelines
 
     data = {
         'q': 'from:' + handle + ' since:' + start_date + ' until:' + end_date + ' exclude:retweets',
         'tweet_mode': 'extended',
         'lang': 'en',
-        'count': str(100) #100 is the max per the API
+        'count': str(200)  # 100 is the documented max per the API
     }
 
     request = requests.get('https://api.twitter.com/1.1/search/tweets.json?',
@@ -66,7 +66,6 @@ def search_twitter(handle, start_date, end_date, save_data):
     tweet_dict = {}
 
     for i in request.json()['statuses']:
-            
         date = i['created_at'].encode('utf-8').replace("+0000", "")
         tweet_text = i['full_text'].encode('utf-8')
 
@@ -74,14 +73,16 @@ def search_twitter(handle, start_date, end_date, save_data):
         # as it works well for sorting
         date_timestamp = calendar.timegm(time.strptime(date, "%a %b %d %H:%M:%S %Y"))
 
-        #key timestamp, value tweet text
+        # key timestamp, value tweet text
         tweet_dict[date_timestamp] = tweet_text
-
 
     otd = OrderedDict(sorted(tweet_dict.items()))
 
     if save_data:
-        save_json_data(tweet_dict, get_filename('handle_raw_twitter', 'json'))
+        # create directory for handle if it doesn't exist
+        path = 'data/' + handle  # should probably be global or allow configurable path
+        make_directory(path)
+        save_json_data(tweet_dict, get_filename(path + '/' + handle + '_tweets', 'json'))
 
     return otd
 
@@ -91,7 +92,5 @@ if __name__ == "__main__":
     args = parsing_arguments.get_parsing_arguments()
 
     for twitter_account in args.twitter_accounts:
-
         print twitter_account
-
-        #print search_twitter(twitter_account, args.start_date, args.end_date, args.save_data)
+        print search_twitter(twitter_account, args.start_date, args.end_date, args.save_data)
